@@ -24,15 +24,54 @@ public class BikeController : ControllerBase
     {
         return Ok(_dbContext
             .Bikes
+            .Include(b => b.Owner).ToList()
             .Select(b => new BikeDTO
             {
                 Id = b.Id,
                 Brand = b.Brand,
                 Color = b.Color,
                 BikeTypeId = b.BikeTypeId,
-                OwnerId = b.OwnerId
+                OwnerId = b.OwnerId,
+                Owner = new OwnerDTO
+                {
+                    Id = b.Owner.Id,
+                    Name = b.Owner.Name,
+                    Address = b.Owner.Address,
+                    Email = b.Owner.Email,
+                    Telephone = b.Owner.Telephone
+                }
             })
             .ToList());
+    }
+
+    [HttpGet("{id}")]
+    [Authorize]
+    public IActionResult GetById(int id)
+    {
+        Bike bike = _dbContext
+            .Bikes
+            .Include(b => b.Owner)
+            .Include(b => b.BikeType)
+            .Include(b => b.WorkOrders)
+            .SingleOrDefault(b => b.Id == id);
+
+        if (bike == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(bike);
+    }
+
+    [HttpGet("inventory")]
+    [Authorize]
+    public IActionResult Inventory()
+    {
+        int inventory = _dbContext
+        .Bikes.Where(b => b.WorkOrders.Any(wo => wo.DateCompleted == null))
+        .Count();
+
+        return Ok(inventory);
     }
 
 }
